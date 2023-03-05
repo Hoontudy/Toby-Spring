@@ -1,16 +1,13 @@
 package hoontudy.toby.la.examples;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
-public class UserDao {
+public abstract class UserDao {
 
   public void add(User user) throws Exception {
-    Class.forName("com.mysql.cj.jdbc.Driver");
-    Connection connection = DriverManager.getConnection(
-        "jdbc:mysql://localhost/toby", "root", "1234");
+    Connection connection = getConnection();
 
     PreparedStatement preparedStatement = connection.prepareStatement(
         "insert into users(id, name, password) values(?, ?, ?)");
@@ -25,9 +22,7 @@ public class UserDao {
   }
 
   public User get(String id) throws Exception {
-    Class.forName("com.mysql.cj.jdbc.Driver");
-    Connection connection = DriverManager.getConnection(
-        "jdbc:mysql://localhost/toby", "root", "1234");
+    Connection connection = getConnection();
 
     PreparedStatement preparedStatement = connection.prepareStatement(
         "select * from users where id = ?");
@@ -46,4 +41,6 @@ public class UserDao {
 
     return user;
   }
+
+  protected abstract Connection getConnection() throws Exception;
 }
