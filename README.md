@@ -20,6 +20,6 @@
 ## 📌 스터디 요약 정리
 |스터디날짜|목차|발표자|발표자료|
 |:---------:|:---:|:---:|:------:|
-|2022.10.25|1.1장 ~ 1.2장|Celine|[발표자료](https://github.com/Hoontudy/Toby-Spring/blob/main/celine/src/main/resources/1%EC%9E%A5_%EC%98%A4%EB%B8%8C%EC%A0%9D%ED%8A%B8%EC%99%80_%EC%9D%98%EC%A1%B4%EA%B4%80%EA%B3%84.md)|
+|2023.03.07|1.1장 ~ 1.2장|Celine|[발표자료](https://github.com/Hoontudy/Toby-Spring/blob/main/celine/src/main/resources/1%EC%9E%A5_%EC%98%A4%EB%B8%8C%EC%A0%9D%ED%8A%B8%EC%99%80_%EC%9D%98%EC%A1%B4%EA%B4%80%EA%B3%84.md)|
 
 
