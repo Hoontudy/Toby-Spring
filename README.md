@@ -17,9 +17,9 @@
 - 다음 발표 issue 를 만든다.
 
 ## 📌 스터디 요약 정리
-|스터디날짜|목차|발표자|
-|:---------:|:---:|:---:|
-|2023.03.07|1.1 초난감 DAO ~ 1.2 DAO의 분리 정리|[Celine](https://github.com/Hoontudy/Toby-Spring/blob/main/celine/src/main/resources/1%EC%9E%A5_%EC%98%A4%EB%B8%8C%EC%A0%9D%ED%8A%B8%EC%99%80_%EC%9D%98%EC%A1%B4%EA%B4%80%EA%B3%84.md)|
-|2023.03.14|1.3 DAO의 확장 ~ 1.4 제어의 역전(IoC)|[Chessball](https://github.com/Hoontudy/Toby-Spring/blob/main/cheeseball/src/doc/ch01_3~01_4.md)|
+|스터디날짜|목차|발표자|이슈|
+|:---------:|:---:|:---:|:---:|
+|2023.03.07|1.1 초난감 DAO ~ 1.2 DAO의 분리 정리|[Celine](https://github.com/Hoontudy/Toby-Spring/blob/main/celine/src/main/resources/1%EC%9E%A5_%EC%98%A4%EB%B8%8C%EC%A0%9D%ED%8A%B8%EC%99%80_%EC%9D%98%EC%A1%B4%EA%B4%80%EA%B3%84.md)|[issue#1](https://github.com/Hoontudy/Toby-Spring/issues/4)|
+|2023.03.14|1.3 DAO의 확장 ~ 1.4 제어의 역전(IoC)|[Chessball](https://github.com/Hoontudy/Toby-Spring/blob/main/cheeseball/src/doc/ch01_3~01_4.md)|[issue#2](https://github.com/Hoontudy/Toby-Spring/issues/5)|  
 
 
