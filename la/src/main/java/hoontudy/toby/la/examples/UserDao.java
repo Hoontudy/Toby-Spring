@@ -6,7 +6,11 @@ import java.sql.ResultSet;
 
 public class UserDao {
 
+  private static UserDao INSTANCE;
+
   private ConnectionMaker connectionMaker;
+  private Connection connection;
+  private User user;
 
   public UserDao(ConnectionMaker connectionMaker) {
     this.connectionMaker = connectionMaker;

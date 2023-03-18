@@ -1,9 +1,12 @@
 package hoontudy.toby.la.examples;
 
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
 public class UserDaoTest {
 
   public static void main(String[] args) {
-    DaoFactory daoFactory = new DaoFactory();
-    UserDao userDao = daoFactory.userDao();
+    ApplicationContext context = new AnnotationConfigApplicationContext();
+    UserDao dao = context.getBean("userDao", UserDao.class);
   }
 }
