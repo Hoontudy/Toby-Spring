@@ -3,21 +3,18 @@ package hoontudy.toby.la.examples;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import javax.sql.DataSource;
 
 public class UserDao {
 
-  private static UserDao INSTANCE;
+  private DataSource dataSource;
 
-  private ConnectionMaker connectionMaker;
-  private Connection connection;
-  private User user;
-
-  public UserDao(ConnectionMaker connectionMaker) {
-    this.connectionMaker = connectionMaker;
+  public void setDataSource(DataSource dataSource) {
+    this.dataSource = dataSource;
   }
 
   public void add(User user) throws Exception {
-    Connection connection = connectionMaker.makeConnection();
+    Connection connection = dataSource.getConnection();
 
     PreparedStatement preparedStatement = connection.prepareStatement(
         "insert into users(id, name, password) values(?, ?, ?)");
@@ -32,7 +29,7 @@ public class UserDao {
   }
 
   public User get(String id) throws Exception {
-    Connection connection = connectionMaker.makeConnection();
+    Connection connection = dataSource.getConnection();
 
     PreparedStatement preparedStatement = connection.prepareStatement(
         "select * from users where id = ?");
