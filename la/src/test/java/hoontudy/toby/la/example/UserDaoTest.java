@@ -1,10 +1,11 @@
-package hoontudy.toby.la.examples;
+package hoontudy.toby.la.example;
 
-import org.junit.Test;
+import hoontudy.toby.la.examples.UserDao;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
-public class UserDaoTestTest {
+public class UserDaoTest {
 
   @Test
   public void addAndGet() {
