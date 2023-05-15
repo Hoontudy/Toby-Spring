@@ -25,4 +25,5 @@
 |2023.04.04|1.7 의존관계 주입(DI)|[Celine](https://github.com/Hoontudy/Toby-Spring/blob/main/celine/src/main/resources/1%EC%9E%A5_%EC%98%A4%EB%B8%8C%EC%A0%9D%ED%8A%B8%EC%99%80_%EC%9D%98%EC%A1%B4%EA%B4%80%EA%B3%84.md)|[issue#4](https://github.com/Hoontudy/Toby-Spring/issues/13)|  
 |2023.04.11|1.8 XML을 이용한 설정|[Cheeseball](https://github.com/Hoontudy/Toby-Spring/blob/main/cheeseball/src/doc/ch01_8~01_9.md)|[issue#5](https://github.com/Hoontudy/Toby-Spring/issues/16)|  
 |2023.04.18|2.1 UserDaoTest 다시보기 ~ 2.2 UserDaoTest 개선|[LA](https://github.com/Hoontudy/Toby-Spring/pull/20)|[issue#6](https://github.com/Hoontudy/Toby-Spring/issues/19)|   
-|2023.04.25|2.3|[Celine]()|[issue#7]()| 
+|2023.04.25|2.3 개발자를 위한 테스팅 프레임워크 JUnit|[Celine](https://github.com/Hoontudy/Toby-Spring/blob/main/celine/src/main/resources/2%EC%9E%A5_%ED%85%8C%EC%8A%A4%ED%8A%B8.md)|[issue#7]()| 
+|2023.05.15|2.4 스프링 테스트 적용 ~ 2.5 학습 테스트로 배운 스프링|[Cheeseball](https://github.com/Hoontudy/Toby-Spring/blob/main/cheeseball/src/doc/ch02_4~02_5.md)|[issue#8](https://github.com/Hoontudy/Toby-Spring/issues/26)| 
