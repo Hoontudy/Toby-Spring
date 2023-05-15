@@ -5,18 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="73ba3c8f-36db-49c3-8803-893d7c244533" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/ch02_1~02_2.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/ch02_4~02_5.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_1.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_2.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_3.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cheeseball/src/doc/ch01_8~01_9.md" beforeDir="false" afterPath="$PROJECT_DIR$/cheeseball/src/doc/ch01_8~01_9.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cheeseball/src/doc/img.png" beforeDir="false" afterPath="$PROJECT_DIR$/cheeseball/src/img/img.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cheeseball/src/doc/img_1.png" beforeDir="false" afterPath="$PROJECT_DIR$/cheeseball/src/img/img_1.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cheeseball/src/doc/img_2.png" beforeDir="false" afterPath="$PROJECT_DIR$/cheeseball/src/img/img_2.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cheeseball/src/doc/img_3.png" beforeDir="false" afterPath="$PROJECT_DIR$/cheeseball/src/img/img_3.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cheeseball/src/doc/img_4.png" beforeDir="false" afterPath="$PROJECT_DIR$/cheeseball/src/img/img_4.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cheeseball/src/doc/img_5.png" beforeDir="false" afterPath="$PROJECT_DIR$/cheeseball/src/img/img_5.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cheeseball/src/doc/img_6.png" beforeDir="false" afterPath="$PROJECT_DIR$/cheeseball/src/img/img_6.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cheeseball/src/doc/img_7.png" beforeDir="false" afterPath="$PROJECT_DIR$/cheeseball/src/img/img_7.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cheeseball/src/doc/img_8.png" beforeDir="false" afterPath="$PROJECT_DIR$/cheeseball/src/img/img_8.png" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
