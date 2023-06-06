@@ -27,3 +27,6 @@
 |2023.04.18|2.1 UserDaoTest 다시보기 ~ 2.2 UserDaoTest 개선|[LA](https://github.com/Hoontudy/Toby-Spring/pull/20)|[issue#6](https://github.com/Hoontudy/Toby-Spring/issues/19)|   
 |2023.04.25|2.3 개발자를 위한 테스팅 프레임워크 JUnit|[Celine](https://github.com/Hoontudy/Toby-Spring/blob/main/celine/src/main/resources/2%EC%9E%A5_%ED%85%8C%EC%8A%A4%ED%8A%B8.md)|[issue#7]()| 
 |2023.05.15|2.4 스프링 테스트 적용 ~ 2.5 학습 테스트로 배운 스프링|[Cheeseball](https://github.com/Hoontudy/Toby-Spring/blob/main/cheeseball/src/doc/ch02_4~02_5.md)|[issue#8](https://github.com/Hoontudy/Toby-Spring/issues/26)| 
+|2023.05.22|3.1 다시 보는 초난감 DAO ~ 3.3 JDBC 전략 패턴의 최적화|[LA](https://github.com/Hoontudy/Toby-Spring/pull/27)|[issue#]()| 
+|2023.05.29|3.4 컨텍스트와 DI ~ 3.5.2 템플릿과 콜백|[Celine]()|[issue#]()| 
+|2023.06.06|3.5 템플릿과 콜백|[Cheeseball](https://github.com/Hoontudy/Toby-Spring/pull/30)|[issue#]()| 
