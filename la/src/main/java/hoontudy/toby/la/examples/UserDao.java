@@ -32,7 +32,7 @@ public abstract class UserDao {
   }
 
   public void deleteAll() throws SQLException {
-    /* no-op */
+    this.jdbcContext.executeSql("delete from users");
   }
 
   public int getCount() throws SQLException {
