@@ -16,7 +16,7 @@ public class JdbcContext {
   public void executeSql(final String query) throws SQLException {
     workWithStatementStrategy(c -> c.prepareStatement(query));
   }
-  public void workWithStatementStrategy(StatementStrategy stmt) throws SQLException {
+  public void workWithStatementStrategy(StatementStrategy stmt) {
     Connection c = null;
     PreparedStatement ps = null;
 
@@ -25,7 +25,7 @@ public class JdbcContext {
       ps = stmt.makePreparedStatement(c);
       ps.executeUpdate();
     } catch (SQLException e) {
-      throw e;
+      throw new DuplicateUserIdException("duplicated user id.");
     } finally {
       if (ps != null) {
         try {

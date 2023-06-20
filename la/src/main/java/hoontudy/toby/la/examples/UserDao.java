@@ -1,5 +1,6 @@
 package hoontudy.toby.la.examples;
 
+import com.mysql.cj.exceptions.MysqlErrorNumbers;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -16,7 +17,7 @@ public abstract class UserDao {
     this.dataSource = dataSource;
   }
 
-  public void add(final User user) throws Exception {
+  public void add(final User user) {
     this.jdbcContext.workWithStatementStrategy(c -> {
       PreparedStatement ps = c.prepareStatement(
           "insert into users(id, name, password) values (?, ?, ?)");
