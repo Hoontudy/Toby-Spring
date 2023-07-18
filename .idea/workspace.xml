@@ -5,24 +5,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="73ba3c8f-36db-49c3-8803-893d7c244533" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/ch03_2~3.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_1.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_10.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_2.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_3.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_4.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_5.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_6.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_7.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_8.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_9.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/Toby-Spring.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Toby-Spring.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$">
+      <ProjectState />
+    </projectState>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -38,12 +33,13 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "main"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/cheeseball/src/img" />
