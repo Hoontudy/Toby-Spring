@@ -4,15 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="73ba3c8f-36db-49c3-8803-893d7c244533" name="Changes" comment="">
+    <list default="true" id="26a23b53-7347-4ba9-9f08-e5e5eb6b5ee8" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/ch06_3~06_4.md" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img.png" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_1.png" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_2.png" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_3.png" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_4.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cheeseball/src/doc/img_5.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/Toby-Spring.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Toby-Spring.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cheeseball/src/doc/ch04_2.md" beforeDir="false" afterPath="$PROJECT_DIR$/cheeseball/src/doc/ch04_2.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -23,6 +25,23 @@
     <projectState path="$PROJECT_DIR$">
       <ProjectState />
     </projectState>
+  </component>
+  <component name="ExternalProjectsManager">
+    <system id="GRADLE">
+      <state>
+        <projects_view>
+          <tree_state>
+            <expand>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="toby-spring" type="f1a62948:ProjectNode" />
+              </path>
+            </expand>
+            <select />
+          </tree_state>
+        </projects_view>
+      </state>
+    </system>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -42,7 +61,11 @@
   &quot;keyToString&quot;: {
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settingsdialog.project.gradle&quot;
   }
 }</component>
   <component name="RecentsManager">
@@ -53,12 +76,20 @@
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="73ba3c8f-36db-49c3-8803-893d7c244533" name="Changes" comment="" />
+      <changelist id="26a23b53-7347-4ba9-9f08-e5e5eb6b5ee8" name="Changes" comment="" />
       <created>1679150798933</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1679150798933</updated>
     </task>
     <servers />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="dependencySupport" implementationName="java:org.springframework:spring-core" />
+    <option featureType="dependencySupport" implementationName="java:jakarta.persistence:jakarta.persistence-api" />
+    <option featureType="dependencySupport" implementationName="java:org.springframework.data:spring-data-commons" />
+    <option featureType="dependencySupport" implementationName="java:org.springframework.boot:spring-boot" />
+    <option featureType="dependencySupport" implementationName="java:org.springframework:spring-webmvc" />
+    <option featureType="dependencySupport" implementationName="java:org.projectlombok:lombok" />
   </component>
 </project>
