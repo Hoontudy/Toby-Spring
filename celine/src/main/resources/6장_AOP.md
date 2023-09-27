@@ -840,3 +840,258 @@ UserServiceTx를 프록시로 사용하는 대신에 다이내믹 프록시를 �
                 getClass().getClassLoader(), new Class[]{UserService.class}, txHandler);
     }
 ```
+
+### 6.3.4 다이내믹 프록시를 위한 팩토리 빈
+
+이제 만들어진 TransactionHandler와 다이내믹 프록시를 스프링 DI를 통해 사용할 수 있도록 한다. 그런데 다이내믹 프록시는 스프링 빈으로 등록할 방법이 없다. 스프링은 빈을 일반적으로 **지정된 클래스**를 가지고 리플렉션을 사용해 오브젝트를 만든다. Class의 new Instance() 메소드는 파라미터가 없는 기본생성자로 생성된 클래스를 돌려주는 리플렉션 API이다. 
+
+`Date now = (Date) Class.forName("java.util.Date").newInstance();`
+
+문제는 다이나믹 프록시는 이러한 방법으로 프록시 오브젝트를 생성하지 않는다.
+
+→ 왜 알 수 없지? 프록시는 Proxy 클래스의 newProxyInstance()를 통해서만 만들 수 있다.
+
+**팩토리 빈**
+
+사실 스프링은 클래스 정보를 가지고 디폴트 생성자를 통해 빈을 만드는 방법 외 다른 방법으로 빈을 만들 수 있는 방법을 제공한다.
+
+팩토리 빈을 구현한 클래스를 스프링빈으로 등록 할 수 있다. 
+
+```java
+public interface FactoryBean<T> {
+	String OBJECT_TYPE_ATTRIBUTE = "factoryBeanObjectType";
+	@Nullable
+	T getObject() throws Exception;
+	@Nullable
+	Class<?> getObjectType();
+	default boolean isSingleton() {
+		return true;
+	}
+}
+```
+
+스프링 빈에 등록하고 싶은 예제 클래스를 하나 만들어보자. 하기 Message 클래스는 생성자를 통해 오브젝트를 생성 할 수 없다. static 메서드를 통해 만들어야한다.
+
+```java
+public class Message {
+    String text;
+
+    private Message(String text) {
+        this.text = text;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public static Message newMessage(String text) {
+        return new Message(text);
+    }
+}
+```
+
+그래서 다음과 같이 사용할 수 없다.
+
+`<bean id="m" class="springbook.learningtest.spring.factorybean.Message"/>`
+
+사실 스프링은 private으로 선언된 생성자라도 리플렉션을 통해서 오브젝트를 만들어 줄 수 있는데, 리플렉션은 private 접근이 가능하기 때문이다. 하지만, 생성자를 private으로 막아놓고 static을 통해 오브젝트를 생성하도록 유도한 것은 이유가 있을것이며, 이것을 무시하고 private 생성자로 오브젝트를 생성하는 것은 위험하며 제대로 동작하지 않을 가능성이 높다.
+
+Message 오브젝트를 만들어주는 팩토리 빈 클래스를 만들어보자
+
+```java
+public class MessageFactoryBean implements FactoryBean<Message> {
+    String text;
+
+    public void setText(String text) {
+        this.text = text;
+    }
+
+    @Override
+    public Message getObject() throws Exception {
+        return Message.newMessage(this.text);
+    }
+
+    @Override
+    public Class<?> getObjectType() {
+        return Message.class;
+    }
+
+    @Override
+    public boolean isSingleton() {
+        return false;
+    }
+}
+```
+
+스프링은 FactoryBean 클래스를 구현한 클래스가 빈으로 등록이 되면, 클래스의 getObject()를 통해서 오브젝트를 가져오고 해당 오브젝트를 빈으로 사용한다.
+
+**팩토리 빈의 설정 방법**
+
+```xml
+<bean id="message" class="springbook.learningtest.spring.factoryBean.MessageFactoryBean">
+	<property name="text" value="Factory Bean" />
+</bean>
+```
+
+여기서 반환되는 빈타입은 클래스 어트리뷰트에 선언된 MessageFactoryBean가 아닌 Message라는 점이다. 반환되는 타입은 MessageFactoryBean의 getObjectType() 메소드가 돌려주는 타입으로 결정된다.
+
+정말 그런지 하기의 테스트를 통해서 확인해보자
+
+```java
+@ContextConfiguration
+class FactoryBeanTest {
+    @Autowired
+    ApplicationContext context;
+    
+    @Test
+    void getMessageFromFactoryBean() {
+        Object message = context.getBean("message");
+        assertThat(message).isExactlyInstanceOf(Message.class);
+        assertThat(((Message)message).getText()).isEqualTo("Factory Bean");
+    }
+}
+```
+
+팩토리 빈 자체를 가져오고 싶다면 하기와 같이 빈 이름 앞에 &를 붙여주면 된다.
+
+```java
+    @Test
+    void getFactoryBean() {
+        Object factory = context.getBean("&message");
+        assertThat(factory).isExactlyInstanceOf(MessageFactoryBean.class);
+    }
+```
+
+**다이내믹 프록시를 만들어주는 팩토리 빈**
+
+**트랜잭션 프록시 팩토리 빈**
+
+```java
+public class TxProxyFactoryBean implements FactoryBean<Object> {
+    Object target;
+    PlatformTransactionManager transactionManager;
+    String pattern;
+    Class<?> serviceInterface;
+
+    public void setTarget(Object target) {
+        this.target = target;
+    }
+
+    public void setTransactionManager(PlatformTransactionManager transactionManager) {
+        this.transactionManager = transactionManager;
+    }
+
+    public void setPattern(String pattern) {
+        this.pattern = pattern;
+    }
+
+    public void setServiceInterface(Class<?> serviceInterface) {
+        this.serviceInterface = serviceInterface;
+    }
+
+    @Override
+    public Object getObject() throws Exception {
+        TransactionHandler txHandler = new TransactionHandler();
+        txHandler.setTarget(target);
+        txHandler.setTransactionManger(transactionManager);
+        txHandler.setPatter(pattern);
+        return Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{serviceInterface}, txHandler);
+    }
+
+    @Override
+    public Class<?> getObjectType() {
+        return serviceInterface;
+    }
+
+    @Override
+    public boolean isSingleton() {
+        return false;
+    }
+}
+```
+
+**트랜잭션 프록시 팩토리 빈 테스트**
+
+```java
+public class UserServiceTest {
+    @Autowired
+    ApplicationContext context;
+
+    @Test
+    @DirtiesContext
+    public void upgradeAllOrNothing() {
+        TestUserService testUserService = new TestUserService(users.get(3).getId());
+        testUserService.setUserDao(userDao);
+        testUserService.setMailSender(mailSender);
+
+        TxProxyFactoryBean txProxyFactoryBean = context.getBean("&userService", TxProxyFactoryBean.class);
+
+        txProxyFactoryBean.setTarget(testUserService);
+        UserService txUserService = (UserService) txProxyFactoryBean.getObject();
+        
+        userDao.deleteAll();
+        for(User user : users) userDao.add(user);
+        
+        try {
+            txUserService.upgradeLevels();
+            fail("TestUserServiceException expected")
+        } catch (TestUserServiceException e) {
+            
+        }
+        
+        checkLevelUpgraded(users.get(1), false);
+    }
+}
+```
+
+### 6.3.5 프록시 팩토리 빈 방식의 장점과 한계
+
+다이나믹 프록시를 생성해주는 팩토리 빈을 사용하는 것에는 많은 장점이 있다.
+
+**프록시 팩토리 빈의 재활용**
+
+TxProxyFactoryBean은 다양한 타겟을(Object)를 담을 수 있기때문에 코드의 수정없이 다양한 클래스에 활용 할 수 있다. 타깃 오브젝트를 프로퍼티로 설정해서 xml 빈 설정만 해주면 된다. 여러개를 등록해도 된다. 왜냐하면 생성되는 빈은 팩토리 빈 자체가 아닌 타겟의 인터페이스 타입과 일치하기 때문이다.
+
+예를들어 UserService 외에 트랜젝션을 적용해야하는 Service가 있다고할 때 트랜젝션 적용 전 후를 비교해 보자
+
+```xml
+<!-- 전 --> 
+<bean id="coreService" class="complex.module.CoreServiceImpl">
+	<property name="coreDao" ref="coreDao" />
+</bean>
+```
+
+```xml
+<!-- 후 --> 
+<bean id="coreServiceTarget" class="complex.module.CoreServiceImpl">
+	<property name="coreDao" ref="coreDao" />
+</bean>
+
+<bean id="coreService" class="springbook.service.TxProxyFactoryBean">
+	<property name="target" ref="coreServiceTarget" />
+	<property name="transactionManager" ref="transactionManager" />
+	<property name="pattern" value="" />
+	<property name="serviceInterface" value="complex.module.CoreService" />
+</bean>
+```
+
+사용하는 클라이언트는 코드의 수정 하나 없이 다이내믹 프록시를 이용한 트랜잭션이 적용된 coreService를 사용할 수 있다.
+
+<img width="646" alt="스크린샷 2023-09-26 18 08 39" src="https://github.com/smartmediarep/KISS/assets/50127628/440e81d8-4b40-491a-9335-867d2da7d9f7">
+
+
+**프록시 팩토리 빈 방식의 장점**
+
+지금까지 확인한 프록시 팩토리 빈은 이전에 말했던 프록시 데코레이트 패턴의 두가지 문제점인, 1. 프록시를 만드려고 인터페이스를 매번 만들어 메소드를 모두 구현하는 문제, 2. 중복되는 데코레이트의 코드를 반복하여 작성해야하는 문제를 해결해 준다.
+
+프록시 팩토리 빈을 사용하면 수많은 Target에 적용 할 수 있고, 하나의 핸들러를 구현하는 것만으로도 (invoke를 통해) 동일반복되는 코드의 구현도 없앨 수 있다. DI 사용하는 것까지 추가한다면 번거로운 다이내믹 프록시 생성코드도 없앨 수 있다.
+
+**프록시 팩토리 빈의 한계**
+
+하지만 이런 프록시 팩토리 빈에도 한계가 있다. invoke를 통한 중복제거는 클래스가 아닌 메소드 단위로 일어난다. 전체 클래스의 권한 체크나 동일하게 트랜젝션을 적용하는 것은 불가하다. 그렇다면 적용하고자하는 Service마다 중복된 xml 설정을 해주어야한다. (xml 설정 코드의 양이 늘어난다.)
+
+여러개의 부가기능을 추가하고 싶을 때도 문제다. 지금은 Transaction 코드만 적용했지만, 보안, 기능검사 등등의 프록시를 추가하고 싶다면? 추가하고싶은 FactoryBean 설정코드 또한 늘어날 것이다. (xml 설정 코드의 양이 늘어난다.)
+
+이로써 xml코드가 방대하게 늘어나고 오타 등 실수할 여지가 너무 늘어난다. 중복 설정코드, 비슷한 설정 코드도 많아진다.
+
+또 한가지 문제점은 TransactionHandler가 Target을 프로퍼티로 가지고있기때문에, 타겟에 마다 TransactionHandler를 생성해주어야한다. 타깃이 다르다는 이유로 TransactionHandler가 많아지고, 또 다른 부가기능의 Handler가 생긴다면 동일하게 중복이 늘어난다.
