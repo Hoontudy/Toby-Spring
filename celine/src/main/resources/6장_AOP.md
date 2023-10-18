@@ -1273,3 +1273,122 @@ ProxyFactoryBean은 스프링의 DI와 템플릿/콜백 패턴, 서비스 추상
 -> 그런데 여기서 왜 그림에서 ProxyFactoryBean을 여러개 만들어주지?
 -> Target을 지정해주니까 ProxyFactoryBean에
 -> 결국 부가기능과 pattern 확인을 위한 두개의 기능이 빈 등록되어 범용사용이 가능한 것임
+
+
+## 6.5 스프링 AOP
+
+### 6.5.1 자동 프록시 생성
+
+**중복 문제의 접근 방법**
+
+ProxyFactoryBean을 설정하는 XML의 중복을 없애고싶다. 매번 타깃과 어드바이저를 XML에 등록하는 중복방법을 없애고싶다.
+
+**빈 후처리기를 이용한 자동 프록시 생성기**
+
+빈 후처리기를 스프링에 적용하는 방법은, 빈 후처리기를 빈으로 등록하면 된다. 빈 후처리기가 등록되어있으면, 빈 오브젝트가 생성될 때 마다 빈 후처리기에
+보내져서 후 처리 작업이 수행된다. 이를 잘 이용하면 스프링이 생성하는 빈 오브젝트의 일부를 프록시로 포장하거나 프록시 빈으로 대신 등록할 수도있다.
+빈 오브젝트가 생성되면 빈 후처리기에 빈이 보내지고 빈 후처리기는 등록된 어드바이저의 포인트컷을 이용해 전달받은 빈이 프록시 적용 대상인지 확인한다.
+프록시 적용 대상이면 내장된 프록시 생성기에게 현재 빈에 대한 프록시를 만들게 하고
+
+![](../../../../../../../../../var/folders/50/7ndqz7bx4dv6bnkwf1pydg780000gn/T/TemporaryItems/NSIRD_screencaptureui_2rxouv/스크린샷 2023-10-18 11.19.28.png)
+
+**확장된 포인트컷**
+
+이제까지 포인트컷은 타깃 오브젝트의 메소드중에 어떤 메소드에 부가기능을 추가할지를 선별하는 역할을 한다고했는데, 위에서는 어떤 빈에 프록시를 적용할지를 선택한다는 식으로
+설명하고 있다. 어떤 말일까?
+
+Pointcut 인터페이스는 클래스 필터와 메소드 매처 두 가지를 돌려주는 메소드를 가지고 있다.
+```java
+public interface Pointcut {
+    ClassFilter getClassFilter(); // 프록시를 적용할 클래스인지 확인해준다.
+    MethodMatcher getMethodMatcher(); // 어드바이스를 적용할 메서드인지 확인해준다.
+}
+```
+
+여태까지는 Method만 판별하면 됐기 때문에 MethodMatcher를 사용하였다. Pointcut의 두 기능을 모두 사용한다면, 먼저 프록시를 적용할 클래스인지 판단하고 나서,
+적용 대상 클래스인 경우에는 어드바이스를 적용할 메소드인지 확인하는 식으로 동작한다.
+
+따라서 모든 빈에 대해 프록시 자동 적용 대상을 선별해야하는 빈 후처리기 클래스와 메소드 선정 알고르짐을 모두 갖고 있는 Pointcut이 필요하다. 
+
+**포인트컷 테스트**
+NameMatchMethodPointcut은 모든 클래스를 통과시켜버리기 때문에, 클래스를 확장해서 클래스도 고를 수 있게하고, 포인트컷을 적용한 ProxyFactoryBean으로 프록시를 만들도록 해서 
+어드바이스가 적용되는지 아닌지 확인해보겠다.
+
+``` java
+ @Test
+    void classNamePointcutAdvisor() {
+        NameMatchMethodPointcut classMethodPointcut = new NameMatchMethodPointcut() {
+            @Override
+            public ClassFilter getClassFilter() {
+                return new ClassFilter() {
+                    @Override
+                    public boolean matches(Class<?> clazz) {
+                        return clazz.getSimpleName().startsWith("HelloT");
+                    }
+                };
+            }
+        };
+        classMethodPointcut.setMappedName("sayH*");
+
+        //테스트
+        checkAdviced(new HelloTarget(), classMethodPointcut, true);
+
+        class HelloWorld extends HelloTarget {}
+        checkAdviced(new HelloWorld(), classMethodPointcut, false);
+
+        class HelloToby extends HelloTarget {}
+        checkAdviced(new HelloToby(), classMethodPointcut, true);
+
+    }
+
+    private void checkAdviced(Object target, Pointcut pointcut, boolean adviced) {
+        ProxyFactoryBean pfBean = new ProxyFactoryBean();
+        pfBean.setTarget(target);
+        pfBean.addAdvisor(new DefaultPointcutAdvisor(pointcut, new UppercaseAdvice()));
+        Hello proxiedHello = (Hello) pfBean.getObject();
+        
+        if (adviced) {
+            assertThat(proxiedHello.sayHello("Toby")).isEqualTo("HELLO TOBY");
+            assertThat(proxiedHello.sayHi("Toby")).isEqualTo("HI TOBY");
+            assertThat(proxiedHello.sayThankYou("Toby")).isEqualTo("Thank You TOBY");
+        } else {
+            assertThat(proxiedHello.sayHello("Toby")).isEqualTo("Hello Toby");
+            assertThat(proxiedHello.sayHi("Toby")).isEqualTo("Hi Toby");
+            assertThat(proxiedHello.sayThankYou("Toby")).isEqualTo("Thank You Toby");
+        }
+    }
+```
+
+NameMatchMethodPointcut를 확장했고 모든 클래스를 통과시켰던 getClassFilter() 메소드를 오버라이드하여 클래스명이 HelloT로 시작하는 클래스만을 선정해주는 필터로 만들었다.
+이름이 다른 HelloTarget을 상속한 세개의 클래스를 선언하고 클래스에 모두 동일한 포인트컷을 적용하였다. 메소드 선정기준은 이전과 동일한 코드를 사용했다.
+그런데 클래스 선정기준에서부터 HelloWorld 클래서는 탈락하기 때문에 메소드 선정기준조차 적용되지 않는다.
+
+### 6.5.2 DefaultAdvisorAutoProxyCreator의 적용
+테스트 코드를 만들었으니 실제 적용해보자
+
+**클래스 필터를 적용한 포인트컷 작성**
+만들어야할 클래스는 위 테스트에서 살짝 보았듯 NameMatchMethodPoincut이다. 상속받아 ClassFilter를 수정하자
+
+```java
+public class NameMatchClassMethodPointcut extends NameMatchMethodPointcut {
+    @Override
+    public void setMappedName(String mappedClassName) {
+        this.setClassFilter(new SimpleClassFilter(mappedClassName));
+    }
+    
+    static class SimpleClassFilter implements ClassFilter {
+        String mappedName;
+        
+        private SimpleClassFilter(String mappedName) {
+            this.mappedName = mappedName;
+        }
+
+        @Override
+        public boolean matches(Class<?> clazz) {
+            return PatternMatchUtils.simpleMatch(mappedName, clazz.getSimpleName());
+        }
+    }
+}
+
+
+```
