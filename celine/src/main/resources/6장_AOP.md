@@ -1142,6 +1142,7 @@ MethodInterceptor의 invoke는 기존의 InvocationHandler와 다르게 타깃�
 ```
 
 **어드바이스: 타깃이 필요 없는 순수한 부가기능**
+
 MethodInterceptor 오브젝트를 추가하는 메소드 이름은 addMethodInterceptor가 아니라 addAdvice이다. 
 MethodInterceptor는 Advice 인터페이스를 상속하고 있는 서브인터페이스이기 때문이다.
 MethodInterceptor처럼 타깃 오브젝트에 적용하는 부가기능을 담은 오브젝트를 스프링에서는 어드바이스라고 부른다. 
@@ -1153,6 +1154,7 @@ MethodInterceptor처럼 타깃 오브젝트에 적용하는 부가기능을 담�
 어드바이스는 타깃 오브젝트에 종속되지 않는!! 순수한 부가기능을 담은 오브젝트이다. (TransactionHandler 와는 다르게)
 
 **포인트컷: 부가기능 적용 대상 메소드 선정 방법**
+
 기존 InvocationHandler를 직접 구현했을 때 부가기능 적용 외에도 pattern을 전달받아 부가기능 적용 대상 메서드를 선별하는 작업을 했다.
 ProxyFactoryBean과 MethodInterceptor에서는 어떻게 동작할까?
 스프링에서는 메소드 선정 알고리즘을 담은 오브젝트를 포인트컷이라고 부르며 기존 InvocationHandler를 구현한 구현체에서 직접 pattern을 가지고 구별했던 것을
@@ -1196,6 +1198,7 @@ ProxyFactoryBean과 MethodInterceptor에서는 어떻게 동작할까?
 TxProxyFactoryBean을 스프링이 제공하는 ProxyFactoryBean을 이용하도록 수정하자
 
 **TransactionAdvice**
+
 부가기능을 담당하는 어드바이스는 Advice의 서브인터페이스인 MethodIntercepor를 구현해서 만든다. TransactionHandler에서 타깃과 메소드 선정부분을 제거해주면 된다.
 ```java
 
@@ -1224,6 +1227,7 @@ public class TransactionAdvice implements MethodInterceptor {
 JDK의 InvocationHandler를 이용해서 만들었을 때 보다 코드가 간결하다.
 
 **스프링 XML 설정파일**
+
 학습 테스트에 직접 DI해서 사용했던 코드를 단지 XML 설정으로 바꿔주기만 하면 된다.
 어드바이스를 먼저 등록한다.
 ```xml
@@ -1266,6 +1270,7 @@ value 태그에는 어드바이저나 어드바이스를 넣을 수 있다.
 
 
 **어드바이스와 포인트컷의 재사용**
+
 ProxyFactoryBean은 스프링의 DI와 템플릿/콜백 패턴, 서비스 추상화 등의 기법이 모두 적용된 것이다. 따라서 여러 프록시가 공유할 수 있는 어드바이스와 포인트컷으로 확장 및 분리 할 수 있다.
 이제 UserService 외에 새로운 비즈니스 로직을 담은 서비스 클래스가 생겨도 동일하게 어드바이스와 포인트컷을 활용할 수 있다.
 
@@ -1308,9 +1313,10 @@ public interface Pointcut {
 여태까지는 Method만 판별하면 됐기 때문에 MethodMatcher를 사용하였다. Pointcut의 두 기능을 모두 사용한다면, 먼저 프록시를 적용할 클래스인지 판단하고 나서,
 적용 대상 클래스인 경우에는 어드바이스를 적용할 메소드인지 확인하는 식으로 동작한다.
 
-따라서 모든 빈에 대해 프록시 자동 적용 대상을 선별해야하는 빈 후처리기 클래스와 메소드 선정 알고르짐을 모두 갖고 있는 Pointcut이 필요하다. 
+따라서 모든 빈에 대해 프록시 자동 적용 대상을 선별해야하는 빈 후처리기 클래스와 메소드 선정 알고리즘을 모두 갖고 있는 Pointcut이 필요하다. 
 
 **포인트컷 테스트**
+
 NameMatchMethodPointcut은 모든 클래스를 통과시켜버리기 때문에, 클래스를 확장해서 클래스도 고를 수 있게하고, 포인트컷을 적용한 ProxyFactoryBean으로 프록시를 만들도록 해서 
 어드바이스가 적용되는지 아닌지 확인해보겠다.
 
@@ -1367,6 +1373,7 @@ NameMatchMethodPointcut를 확장했고 모든 클래스를 통과시켰던 getC
 테스트 코드를 만들었으니 실제 적용해보자
 
 **클래스 필터를 적용한 포인트컷 작성**
+
 만들어야할 클래스는 위 테스트에서 살짝 보았듯 NameMatchMethodPoincut이다. 상속받아 ClassFilter를 수정하자
 
 ```java
@@ -1389,6 +1396,79 @@ public class NameMatchClassMethodPointcut extends NameMatchMethodPointcut {
         }
     }
 }
-
-
 ```
+
+**어드바이저를 이용하는 자동 프록시 생성기 등록**
+
+자동 프록시 생성기인 DefaultAdvisorAutoProxyCreator는 등록된 빈 중에서 Advisor 인터페이스를 구현한 것들을 모두 찾고, 생성되는 모든 빈에 대해
+어드바이저의 포인트컷을 적용해보면서 프록시 적용 대상을 선정한다. 빈 클래스가 프록시 선정 대상이라면, 프록시를 만들어 원래 빈 오브젝트랑 바꿔치기한다.
+따라서 타깃 빈에 의존하는 것들은 타깃 빈 대신 프록시를 DI 받는다.
+DefaultAdvisorAutoProxyCreator는 하기 한줄로 등록한다.
+```xml
+<bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"/>
+```
+다른 빈에서 참조되지 않는다면 id를 등록할 필요가 없다.
+
+
+**포인트컷 등록**
+
+기존 포인트컷 설정을 삭제하고 새로운 포인트컷 설정을 등록한다.
+```xml
+<bean id="transactionPointcut" class="springbook.service.NameMatchClassMethodPointcut">
+  <property name="mappedClassName" value="*ServiceImpl"/> <!-- 클래스 이름 패턴 -->
+  <property name="mappedName" value="upgrade*"/> <!-- 메소드 이름 패턴 -->
+</bean>
+```
+
+**어드바이스와 어드바이저**
+
+transactionAdvice 어드바이스 빈 설정은 수정할 것이 없고, 어드바이저인 transactionAdvisor 빈도 수정할 필요가 없다.
+다만 사용되는 방법이 바뀌었는데, ProxyFactoryBean을 등록한것처럼 명시적으로 어드바이저를 DI하지 않는다. 
+앞에서 등록한 DefaultAdvisorAutoProxyCreator에 의해서 자동으로 어드바이저가 수집된다.
+
+**ProxyFactoryBean 제거와 서비스 빈의 원상복구**
+
+FactoryBean의 생성을 위해 사용했던 userSerivce id를 이제 다시 되찾을 수 있다. \
+프록시를 사용하기 전의 상태로 돌아 왔다.
+```xml
+<bean id="userService" class="springbook.user.service.UserServiceImpl">
+	<property name="userDao" ref="userDao" />
+	<property name="mailSender" ref="mailSender" />
+</bean>
+```
+
+**자동 프록시 생성기를 사용하는 테스트**
+
+이전에는 ProxyFactoryBean이 있기 때문에 해당 빈을 가져와서 테스트에서 테스트용 클래스로 바꿔치기 했지만, 이제는 더이상
+ProxyFactoryBean이 등록되어있지 않다. 자동 프록시 생성기가 등록되어있기 때문이다. \
+따라서 테스트를 위한 빈을 등록해줘야한다. 
+
+TestUserService 클래스를 이제는 빈으로 직접 등록해서 사용한다. 고려해야 할 점 1, 2는 하기와 같이 처리한다.
+1. TestUserService는 UserServiceTest 클래스 내부에 정의된 static 클래스다
+2. 포인트 컷이 트랜잭션 어드바이스를 적용해주는 대상 클래스 이름 패턴이 *ServiceImpl이다
+   3. 따라서 TestUserService 클래스는 빈으로 등록해도 포인트컷이 프록시 적용 대상으로 선정해주지 않는다.
+
+해결법
+1. static 클래스 자체는 빈으로 등록되는 데 아무런 문제가 없다.
+2. 클래스 이름이 포인트컷이 선정해 줄 수 있는 ~ServiceImpl로 변경하자
+
+
+```xml
+<bean id="testUserService" class="springbook.user.service.UserServiceTest$TestUserServiceImpl" parent="userService"/>
+```
+TestUserServiceImpl을 빈으로 등록할 수 있는데 static 멤버클래스이므로 $를 사용해서 지정해준다. \
+또 parent값을 사용하면 다른 빈 설정의 내용을 상속받을 수 있다. parent="userService"라고하면 userService 빈의 모든 설정을
+그대로 가져와서 사용하겠다는 뜻이다.
+
+결론적으로 테스트 코드 자체는 단순해졌지만, 테스트의 내용을 이해하려면 설정파일의 DI 정보까지 참고해야 하니
+테스트의 내용을 이해하기는 조금 어려워졌다. 
+
+
+**자동생성 프록시 확인**
+지금까지 트랜잭션 어드바이스를 적용한 프록시 자동생성기를 빈 후처리기 메커니즘을 통해 적용했다. \
+로직에 따라 하기 최소 2가지를 확인해보아야한다.
+1. 필요한 빈에 트랜잭션 부가기능이 적용되었는지
+2. 아무빈에나 트랜잭션 부가기능이 적용된것은 아닌지
+   3. 클래스 필터가 제대로 동작하는지를 확인해본다.
+      4. 이전 테스트에서 적용된 클래스의 이름을 변경해서 적용되지 않으면, 정상동작하고 있는 것!
+
