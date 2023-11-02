@@ -1142,6 +1142,7 @@ MethodInterceptor의 invoke는 기존의 InvocationHandler와 다르게 타깃�
 ```
 
 **어드바이스: 타깃이 필요 없는 순수한 부가기능**
+
 MethodInterceptor 오브젝트를 추가하는 메소드 이름은 addMethodInterceptor가 아니라 addAdvice이다. 
 MethodInterceptor는 Advice 인터페이스를 상속하고 있는 서브인터페이스이기 때문이다.
 MethodInterceptor처럼 타깃 오브젝트에 적용하는 부가기능을 담은 오브젝트를 스프링에서는 어드바이스라고 부른다. 
@@ -1153,6 +1154,7 @@ MethodInterceptor처럼 타깃 오브젝트에 적용하는 부가기능을 담�
 어드바이스는 타깃 오브젝트에 종속되지 않는!! 순수한 부가기능을 담은 오브젝트이다. (TransactionHandler 와는 다르게)
 
 **포인트컷: 부가기능 적용 대상 메소드 선정 방법**
+
 기존 InvocationHandler를 직접 구현했을 때 부가기능 적용 외에도 pattern을 전달받아 부가기능 적용 대상 메서드를 선별하는 작업을 했다.
 ProxyFactoryBean과 MethodInterceptor에서는 어떻게 동작할까?
 스프링에서는 메소드 선정 알고리즘을 담은 오브젝트를 포인트컷이라고 부르며 기존 InvocationHandler를 구현한 구현체에서 직접 pattern을 가지고 구별했던 것을
@@ -1196,6 +1198,7 @@ ProxyFactoryBean과 MethodInterceptor에서는 어떻게 동작할까?
 TxProxyFactoryBean을 스프링이 제공하는 ProxyFactoryBean을 이용하도록 수정하자
 
 **TransactionAdvice**
+
 부가기능을 담당하는 어드바이스는 Advice의 서브인터페이스인 MethodIntercepor를 구현해서 만든다. TransactionHandler에서 타깃과 메소드 선정부분을 제거해주면 된다.
 ```java
 
@@ -1224,6 +1227,7 @@ public class TransactionAdvice implements MethodInterceptor {
 JDK의 InvocationHandler를 이용해서 만들었을 때 보다 코드가 간결하다.
 
 **스프링 XML 설정파일**
+
 학습 테스트에 직접 DI해서 사용했던 코드를 단지 XML 설정으로 바꿔주기만 하면 된다.
 어드바이스를 먼저 등록한다.
 ```xml
@@ -1266,6 +1270,7 @@ value 태그에는 어드바이저나 어드바이스를 넣을 수 있다.
 
 
 **어드바이스와 포인트컷의 재사용**
+
 ProxyFactoryBean은 스프링의 DI와 템플릿/콜백 패턴, 서비스 추상화 등의 기법이 모두 적용된 것이다. 따라서 여러 프록시가 공유할 수 있는 어드바이스와 포인트컷으로 확장 및 분리 할 수 있다.
 이제 UserService 외에 새로운 비즈니스 로직을 담은 서비스 클래스가 생겨도 동일하게 어드바이스와 포인트컷을 활용할 수 있다.
 
@@ -1273,3 +1278,397 @@ ProxyFactoryBean은 스프링의 DI와 템플릿/콜백 패턴, 서비스 추상
 -> 그런데 여기서 왜 그림에서 ProxyFactoryBean을 여러개 만들어주지?
 -> Target을 지정해주니까 ProxyFactoryBean에
 -> 결국 부가기능과 pattern 확인을 위한 두개의 기능이 빈 등록되어 범용사용이 가능한 것임
+
+
+## 6.5 스프링 AOP
+
+### 6.5.1 자동 프록시 생성
+
+**중복 문제의 접근 방법**
+
+ProxyFactoryBean을 설정하는 XML의 중복을 없애고싶다. 매번 타깃과 어드바이저를 XML에 등록하는 중복방법을 없애고싶다.
+
+**빈 후처리기를 이용한 자동 프록시 생성기**
+
+빈 후처리기를 스프링에 적용하는 방법은, 빈 후처리기를 빈으로 등록하면 된다. 빈 후처리기가 등록되어있으면, 빈 오브젝트가 생성될 때 마다 빈 후처리기에
+보내져서 후 처리 작업이 수행된다. 이를 잘 이용하면 스프링이 생성하는 빈 오브젝트의 일부를 프록시로 포장하거나 프록시 빈으로 대신 등록할 수도있다.
+빈 오브젝트가 생성되면 빈 후처리기에 빈이 보내지고 빈 후처리기는 등록된 어드바이저의 포인트컷을 이용해 전달받은 빈이 프록시 적용 대상인지 확인한다.
+프록시 적용 대상이면 내장된 프록시 생성기에게 현재 빈에 대한 프록시를 만들게 하고
+
+![](../../../../../../../../../var/folders/50/7ndqz7bx4dv6bnkwf1pydg780000gn/T/TemporaryItems/NSIRD_screencaptureui_2rxouv/스크린샷 2023-10-18 11.19.28.png)
+
+**확장된 포인트컷**
+
+이제까지 포인트컷은 타깃 오브젝트의 메소드중에 어떤 메소드에 부가기능을 추가할지를 선별하는 역할을 한다고했는데, 위에서는 어떤 빈에 프록시를 적용할지를 선택한다는 식으로
+설명하고 있다. 어떤 말일까?
+
+Pointcut 인터페이스는 클래스 필터와 메소드 매처 두 가지를 돌려주는 메소드를 가지고 있다.
+```java
+public interface Pointcut {
+    ClassFilter getClassFilter(); // 프록시를 적용할 클래스인지 확인해준다.
+    MethodMatcher getMethodMatcher(); // 어드바이스를 적용할 메서드인지 확인해준다.
+}
+```
+
+여태까지는 Method만 판별하면 됐기 때문에 MethodMatcher를 사용하였다. Pointcut의 두 기능을 모두 사용한다면, 먼저 프록시를 적용할 클래스인지 판단하고 나서,
+적용 대상 클래스인 경우에는 어드바이스를 적용할 메소드인지 확인하는 식으로 동작한다.
+
+따라서 모든 빈에 대해 프록시 자동 적용 대상을 선별해야하는 빈 후처리기 클래스와 메소드 선정 알고리즘을 모두 갖고 있는 Pointcut이 필요하다. 
+
+**포인트컷 테스트**
+
+NameMatchMethodPointcut은 모든 클래스를 통과시켜버리기 때문에, 클래스를 확장해서 클래스도 고를 수 있게하고, 포인트컷을 적용한 ProxyFactoryBean으로 프록시를 만들도록 해서 
+어드바이스가 적용되는지 아닌지 확인해보겠다.
+
+``` java
+ @Test
+    void classNamePointcutAdvisor() {
+        NameMatchMethodPointcut classMethodPointcut = new NameMatchMethodPointcut() {
+            @Override
+            public ClassFilter getClassFilter() {
+                return new ClassFilter() {
+                    @Override
+                    public boolean matches(Class<?> clazz) {
+                        return clazz.getSimpleName().startsWith("HelloT");
+                    }
+                };
+            }
+        };
+        classMethodPointcut.setMappedName("sayH*");
+
+        //테스트
+        checkAdviced(new HelloTarget(), classMethodPointcut, true);
+
+        class HelloWorld extends HelloTarget {}
+        checkAdviced(new HelloWorld(), classMethodPointcut, false);
+
+        class HelloToby extends HelloTarget {}
+        checkAdviced(new HelloToby(), classMethodPointcut, true);
+
+    }
+
+    private void checkAdviced(Object target, Pointcut pointcut, boolean adviced) {
+        ProxyFactoryBean pfBean = new ProxyFactoryBean();
+        pfBean.setTarget(target);
+        pfBean.addAdvisor(new DefaultPointcutAdvisor(pointcut, new UppercaseAdvice()));
+        Hello proxiedHello = (Hello) pfBean.getObject();
+        
+        if (adviced) {
+            assertThat(proxiedHello.sayHello("Toby")).isEqualTo("HELLO TOBY");
+            assertThat(proxiedHello.sayHi("Toby")).isEqualTo("HI TOBY");
+            assertThat(proxiedHello.sayThankYou("Toby")).isEqualTo("Thank You TOBY");
+        } else {
+            assertThat(proxiedHello.sayHello("Toby")).isEqualTo("Hello Toby");
+            assertThat(proxiedHello.sayHi("Toby")).isEqualTo("Hi Toby");
+            assertThat(proxiedHello.sayThankYou("Toby")).isEqualTo("Thank You Toby");
+        }
+    }
+```
+
+NameMatchMethodPointcut를 확장했고 모든 클래스를 통과시켰던 getClassFilter() 메소드를 오버라이드하여 클래스명이 HelloT로 시작하는 클래스만을 선정해주는 필터로 만들었다.
+이름이 다른 HelloTarget을 상속한 세개의 클래스를 선언하고 클래스에 모두 동일한 포인트컷을 적용하였다. 메소드 선정기준은 이전과 동일한 코드를 사용했다.
+그런데 클래스 선정기준에서부터 HelloWorld 클래서는 탈락하기 때문에 메소드 선정기준조차 적용되지 않는다.
+
+### 6.5.2 DefaultAdvisorAutoProxyCreator의 적용
+테스트 코드를 만들었으니 실제 적용해보자
+
+**클래스 필터를 적용한 포인트컷 작성**
+
+만들어야할 클래스는 위 테스트에서 살짝 보았듯 NameMatchMethodPoincut이다. 상속받아 ClassFilter를 수정하자
+
+```java
+public class NameMatchClassMethodPointcut extends NameMatchMethodPointcut {
+    @Override
+    public void setMappedName(String mappedClassName) {
+        this.setClassFilter(new SimpleClassFilter(mappedClassName));
+    }
+    
+    static class SimpleClassFilter implements ClassFilter {
+        String mappedName;
+        
+        private SimpleClassFilter(String mappedName) {
+            this.mappedName = mappedName;
+        }
+
+        @Override
+        public boolean matches(Class<?> clazz) {
+            return PatternMatchUtils.simpleMatch(mappedName, clazz.getSimpleName());
+        }
+    }
+}
+```
+
+**어드바이저를 이용하는 자동 프록시 생성기 등록**
+
+자동 프록시 생성기인 DefaultAdvisorAutoProxyCreator는 등록된 빈 중에서 Advisor 인터페이스를 구현한 것들을 모두 찾고, 생성되는 모든 빈에 대해
+어드바이저의 포인트컷을 적용해보면서 프록시 적용 대상을 선정한다. 빈 클래스가 프록시 선정 대상이라면, 프록시를 만들어 원래 빈 오브젝트랑 바꿔치기한다.
+따라서 타깃 빈에 의존하는 것들은 타깃 빈 대신 프록시를 DI 받는다.
+DefaultAdvisorAutoProxyCreator는 하기 한줄로 등록한다.
+```xml
+<bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"/>
+```
+다른 빈에서 참조되지 않는다면 id를 등록할 필요가 없다.
+
+
+**포인트컷 등록**
+
+기존 포인트컷 설정을 삭제하고 새로운 포인트컷 설정을 등록한다.
+```xml
+<bean id="transactionPointcut" class="springbook.service.NameMatchClassMethodPointcut">
+  <property name="mappedClassName" value="*ServiceImpl"/> <!-- 클래스 이름 패턴 -->
+  <property name="mappedName" value="upgrade*"/> <!-- 메소드 이름 패턴 -->
+</bean>
+```
+
+**어드바이스와 어드바이저**
+
+transactionAdvice 어드바이스 빈 설정은 수정할 것이 없고, 어드바이저인 transactionAdvisor 빈도 수정할 필요가 없다.
+다만 사용되는 방법이 바뀌었는데, ProxyFactoryBean을 등록한것처럼 명시적으로 어드바이저를 DI하지 않는다. 
+앞에서 등록한 DefaultAdvisorAutoProxyCreator에 의해서 자동으로 어드바이저가 수집된다.
+
+**ProxyFactoryBean 제거와 서비스 빈의 원상복구**
+
+FactoryBean의 생성을 위해 사용했던 userSerivce id를 이제 다시 되찾을 수 있다. \
+프록시를 사용하기 전의 상태로 돌아 왔다.
+```xml
+<bean id="userService" class="springbook.user.service.UserServiceImpl">
+	<property name="userDao" ref="userDao" />
+	<property name="mailSender" ref="mailSender" />
+</bean>
+```
+
+**자동 프록시 생성기를 사용하는 테스트**
+
+이전에는 ProxyFactoryBean이 있기 때문에 해당 빈을 가져와서 테스트에서 테스트용 클래스로 바꿔치기 했지만, 이제는 더이상
+ProxyFactoryBean이 등록되어있지 않다. 자동 프록시 생성기가 등록되어있기 때문이다. \
+따라서 테스트를 위한 빈을 등록해줘야한다. 
+
+TestUserService 클래스를 이제는 빈으로 직접 등록해서 사용한다. 고려해야 할 점 1, 2는 하기와 같이 처리한다.
+1. TestUserService는 UserServiceTest 클래스 내부에 정의된 static 클래스다
+2. 포인트 컷이 트랜잭션 어드바이스를 적용해주는 대상 클래스 이름 패턴이 *ServiceImpl이다
+   3. 따라서 TestUserService 클래스는 빈으로 등록해도 포인트컷이 프록시 적용 대상으로 선정해주지 않는다.
+
+해결법
+1. static 클래스 자체는 빈으로 등록되는 데 아무런 문제가 없다.
+2. 클래스 이름이 포인트컷이 선정해 줄 수 있는 ~ServiceImpl로 변경하자
+
+
+```xml
+<bean id="testUserService" class="springbook.user.service.UserServiceTest$TestUserServiceImpl" parent="userService"/>
+```
+TestUserServiceImpl을 빈으로 등록할 수 있는데 static 멤버클래스이므로 $를 사용해서 지정해준다. \
+또 parent값을 사용하면 다른 빈 설정의 내용을 상속받을 수 있다. parent="userService"라고하면 userService 빈의 모든 설정을
+그대로 가져와서 사용하겠다는 뜻이다.
+
+결론적으로 테스트 코드 자체는 단순해졌지만, 테스트의 내용을 이해하려면 설정파일의 DI 정보까지 참고해야 하니
+테스트의 내용을 이해하기는 조금 어려워졌다. 
+
+
+**자동생성 프록시 확인**
+지금까지 트랜잭션 어드바이스를 적용한 프록시 자동생성기를 빈 후처리기 메커니즘을 통해 적용했다. \
+로직에 따라 하기 최소 2가지를 확인해보아야한다.
+1. 필요한 빈에 트랜잭션 부가기능이 적용되었는지
+2. 아무빈에나 트랜잭션 부가기능이 적용된것은 아닌지
+   3. 클래스 필터가 제대로 동작하는지를 확인해본다.
+      4. 이전 테스트에서 적용된 클래스의 이름을 변경해서 적용되지 않으면, 정상동작하고 있는 것!
+
+
+### 6.5.3 포인트컷 표현식을 이용한 포인트 컷
+이전까지는 클래스나 메소드의 이름을 가지고 포인트 컷을 적용할지 아닐지를 구분했다. 
+하지만 더 다양하고 세밀한 방법으로도 포인트 컷을 적용할 수 있다. 스프링에서는 정규식같은 것을 제공해서 간편하게 포인트 컷을 적용하도록 지원한다. 
+
+**포인트컷 표현식**
+포인트컷 표현식을 지원하는 포인트컷을 적용하려면 AspectJExpressionPointcut 클래스를 사용하면 된다.
+AspectJExpressionPointcut은 정규표현식을 사용해서 클래스, 메소드 패턴을 한꺼번에 적용하도록 할 수 있다.
+
+학습테스트로 표현식의 사용방법을 살펴보자
+```java
+public class Target implements TargetInterface{
+    @Override
+    public void hello() {}
+
+    @Override
+    public void hello(String a) {}
+
+    @Override
+    public int minus(int a, int b) throws RuntimeException { return 0; }
+
+    @Override
+    public int plus(int a, int b) { return 0;}
+    public void method() {}
+}
+```
+상기 메소드들에서 원하는 메소드만 선정하는 방법을 알아본다. 클래스 선정기능을 알아보기 위해 클래스도 하나 더 추가한다.
+```java
+public class Bean {
+    public void method() throws RuntimeException {
+        
+    }
+}
+```
+이제 두 개의 클래스와 총 6개의 메소드를 대상으로 포인트컷 표현식을 적용해보자
+
+**포인트컷 표현식 문법**
+AspectJ 포인트컷 표현식은 포인트컷 지시자를 이용해 작성한다. 포인트컷 지시자 중에서 가장 대표적으로 사용되는 것은 execution()이다.
+포인트컷 표현식의 문법구조는 기본적으로 다음과 같다.
+
+[]괄호는 옵션항목이기 때문에 생략이 가능하다는 의미이며, |는 OR 조건이다.
+![](../../../../../../../../../var/folders/50/7ndqz7bx4dv6bnkwf1pydg780000gn/T/TemporaryItems/NSIRD_screencaptureui_vLYACB/스크린샷 2023-11-02 10.34.18.png)
+복잡해보이지만, 메소드의 풀 시그니처를 문자열로 비교하는 개념이라고 생각하면 간단하다.
+
+`System.out.println(Target.class.getMethod("minus", int.class, int.class))`
+를 출력한 결과를 보면 이해하기 쉽다. 
+
+`public int springbook.learningtest.spring.pointcut.Target.minus(int,int) throws java.lang.RuntimeException`
+
+- pulbic : 생략가능
+- int : 필수항목. 혹은 *를 써서 모든 타입을 선택할 수 있다.
+- springbook.learningtest.spring.pointcut.Target : 패키지 및 클래스의 타입패턴. 생략가능. 
+  - 패키지이름과 클래스 또는 인터페이스 이름에 *를 사용할 수 있다. 또 '..'를 사용하면 한 번에 여러개의 패키지를 선택할 수 있다. 
+- minus : 메소드 이름 패턴. 필수항목. 마찬가지로 *를 써서 모든 타입을 선택할 수 있다.
+- (int, int) : 메소드 파라마터 타입. 필수항목. 파라미터가 없는 메소드를 지정하고 싶다면 ()로 적고, 타입과 개수에 상관없이 모두 다 허용하게 한다면 '..'를 넣으면 된다. '..'를 이용해서 뒷부분의 파라미터 조건만 생략할 수도 있다.
+- throws java.lang.RuntimeException: 예외 이름에 대한 타입 패턴. 생략 가능
+
+Target 클래스의 minus() 메소드만 선정해주는 포인트컷 표현식을 만들고 이를 검증하는 테스트를 작성해보자.
+```java
+public class PointcutExpressionTest {
+    @Test
+    public void methodSignaturePointcut() throws SecurityException, NoSuchMethodException {
+        AspectJExpressionPointcut pointcut = new AspectJExpressionPointcut();
+        pointcut.setExpression("execution(public int com.example.ecstest.toby.Target.minus(int,int) throws java.lang.RuntimeException)");
+
+        //Target.minus()
+        assertThat(pointcut.getClassFilter().matches(Target.class) &&
+                pointcut.getMethodMatcher().matches(Target.class.getMethod("minus", int.class, int.class), null)).isTrue();
+
+        //Target.plus()
+        assertThat(pointcut.getClassFilter().matches(Target.class) &&
+                pointcut.getMethodMatcher().matches(Target.class.getMethod("plus", int.class, int.class), null)).isFalse();
+
+        //Bean.method()
+        assertThat(pointcut.getClassFilter().matches(Bean.class) &&
+                pointcut.getMethodMatcher().matches(Target.class.getMethod("method", int.class, int.class), null)).isFalse();
+    }
+}
+```
+포인트컷의 선정 방식은 클래스 필터와 메소드 매처를 각각 비교해보는 것이다. 두 가지 조건을 모두 만족시키면 해당 메소드는 포인트컷의 대상이 된다.
+
+**포인트컷 표현식 테스트**
+메소드 시그니처를 그대로 사용한 포인트 표현식을 위의 문법구조를 참고해서 다시 정리해보자. 옵션 항목을 생력하면 다음과 같이 만들 수 있다.
+
+`execution(int minus(int,int))`
+
+이 표현식은 어떤 접근제한자를 가졌든, 어떤 클래스에 정의됐든, 어떤 예외를 던지든 상관없이 정수 값을 리턴하고 두개의 정수형 파라미터를 갖는 
+minus라는 이름의 모든 메소드를 선정하는 좀 더 느슨한 포인트컷이 됐다.
+
+`execution(* minus(int,int))`
+-> 리턴타입이 상관없다.
+
+`execution(* minus(..))`
+-> 리턴타입이 상관없고 파라미터 개수와 타입도 상관 없다.
+
+`execution(* *(..))`
+-> 리턴타입, 파라미터, 메소드 이름에 상관없이 모든 메소드 조건을 다 허용한다.
+
+다양한 표현식을 더 테스트해본다. 테스트를 돕는 테스트 헬퍼 메서드를 작성한다. 그리고 클래스 + 메서드를 조합한 6가지 방식을 모두 테스트해본다.
+
+``` java
+ public void pointcutMatches(String expression, Boolean expected, Class<?> clazz, String methodName, Class<?>... args) throws NoSuchMethodException {
+    AspectJExpressionPointcut pointcut = new AspectJExpressionPointcut();
+    pointcut.setExpression(expression);
+
+    assertThat(pointcut.getClassFilter().matches(clazz) &&
+           pointcut.getMethodMatcher().matches(clazz.getMethod(methodName, args), null)).isEqualTo(expected);
+    }
+    
+ public void targetClassPointcutMatches(String expression, boolean... expected) throws Exception {
+    pointcutMatches(expression, expected[0], Target.class, "hello");
+    pointcutMatches(expression, expected[1], Target.class, "hello", String.class);
+    pointcutMatches(expression, expected[2], Target.class, "hello", int.class, int.class);
+    pointcutMatches(expression, expected[3], Target.class, "minus", int.class, int.class);
+    pointcutMatches(expression, expected[4], Target.class, "plus", int.class, int.class);
+    pointcutMatches(expression, expected[5], Bean.class, "method");
+
+    }
+    
+ @Test
+ void pointcut() throws Exception {
+     targetClassPointcutMatches("execution(* *(..))",true, true, true, true, true, true);
+ }
+```
+
+**포인트컷 표현식을 이용하는 포인트컷 적용**
+위에 설명한 방법 외에도 더 다양한 포인트컷 적용방식이 많다. 
+
+메소드 시그니처를 비교하는 방식인 execution() 외에도 빈의 이름으로 비교하는 bean()이 있다.
+`bean(*Service)` 라고 쓰면 Service로 끝나는 모든 빈을 선택한다. \
+또 특정 애노테이션이 타입, 메소드, 파라미터에 적용되어 있는 것을 보고 메소드를 선정하게 하는 포인트컷도 만들 수 있다.
+`ex) @Transaction`
+
+테스트를 해봤으니 직접 적용할 시간이다. 이제 NameMatchclassMethodPointcut과 같이 직접 만든 포인트컷 구현 클래스를 사용할 일은 없다.
+기존 빈 프로퍼티 선언에 담긴 조건들을 다시 살펴본다.
+
+```xml
+<property name="mappedClassName" value="*ServiceImpl"/> <!-- 클래스 이름 패턴 -->
+<property name="mappedName" value="upgrade*"/> <!-- 메소드 이름 패턴 -->
+```
+
+AspectJExpressionPointcut 빈을 등록하고 expression 프로퍼티에 표현식을 넣어주면 된다.
+표현식은 다음과 같다. `expression(* *..*ServiceImpl.upgrade*(..))` \
+이를 적용한 빈 설정은 다음과 같다.
+```xml
+<bean id="transactionPointcut" class="org.springframework.aop.aspectj.AseprctJExpressionPointcut">
+    <property name="expression" value="expression(* *..*ServiceImpl.upgrade*(..))" />
+</bean>
+```
+코드가 단순해진다는 장점이 있지만, 적용되는 패턴이 문자열로 이루어져있기때문에 컴파일 시점에 검증할 수 없고 런타임 시점에
+알수있다는 단점이 존재한다. 때문에 다양한 테스트를 통해 검증된 표현식을 가져다 써야한다. \
+정확하게 원하는 빈에만 적용되었는지는 추후 스프링에서 제공하는 툴을 사용하면 한눈에 알 수 있다. 
+
+**타입 패턴과 클래스 이름 패턴**
+앞서 클래스 및 메소드 이름 패턴으로 적용하는 방법과 AseprctJExpressionPointcut의 exepression을 사용하여 적용하는 법을 알아보았다.
+그런데 이 두가지 방법에는 중요한 차이점이 있다. 포인트컷 표현식에는 TestUserService도 테스트를 통과한다. 왜일까?\
+그 이유는 포인트컷 표현식의 클래스 이름에 적용되는 패턴은 클래스 이름 패턴이 아니라 **타입 패턴**이기 때문이다.
+TestUserService는 TestUserServiceImpl을 상속하여 구현하였기 때문에 패턴이 적용된다.
+포인트컷 표현식에서 **타입 패턴**이라고 명시된 부분은 모두 동일한 원리가 적용된다.
+
+
+### 6.5.4 AOP란 무엇인가?
+비지니스 로직을 담은 UserService에 트랜잭션을 적용해온 과정을 정리해보자
+
+**트랜잭션 서비스 추상화**
+
+트랜잭션 코드를 비지니스 로직안에 함께 구현한 코드는 특정 트랜잭션 기술에 종속되어 버린다.
+JDBC 로컬 트랜잭션 방식을 적용한 코드를 JTA를 이용한 코드로 바꾸려면 트랜잭션을 적용한 모든 코드를 변경해야한다.
+
+따라서 트랜잭션 적용의 내용은 유지하고 구체적인 구현 방법을 바꿀 수 있도록 서비스 추상화를 적용했고
+비지니스 로직은 트랜잭션을 어떻게 처리한다는 구체적인 방법은 알지않아도 되었다. 
+서비스 추상화란 결국 인터페이스와 DI를 통해 분리하고 구현체를 주입해주는 방식을 적용한 것이다.
+
+**프록시와 데코레이터 패턴**
+
+
+
+**다이내믹 프록시와 프록시 팩토리 빈**
+
+**자동 프록시 생성 방법과 포인트컷**
+
+**부가기능의 모듈화**
+
+트랜잭션 같은 부가기능은 핵심기능과 같은 방식으로 모듈화하기가 매우 힘들다. 왜냐하면 부가기능은 핵심기능이 존재해야만 의미가 있기 때문이다.\
+결국 지금까지 해온 모든 작업은 핵심기능에 부여되는 부가기능을 효과적으로 모듈화하는 방법을 찾는 것이었다.
+
+**AOP: 애스펙트 지향 프로그래밍**
+애스팩트란 그 자체로 애플리케이션의 핵심기능을 담고 있지는 않지만, 애플리케이션을 구성하는 중요한 한가지 요소이고, 핵심기능에
+부가되어 의미를 갖는 특별한 모듈을 가리킨다.
+
+애스펙트 : 어드바이스 + 포인트컷\
+어드바이저는 아주 단순한 형태의 애스펙트라고 할 수 있다.
+
+AOP는 OOP를 돕는 보조적인 기술이지 OOP를 대체하는 새로운 개념이 아니다.
+
+
+
+
+
+
