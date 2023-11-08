@@ -1667,6 +1667,102 @@ JDBC 로컬 트랜잭션 방식을 적용한 코드를 JTA를 이용한 코드�
 
 AOP는 OOP를 돕는 보조적인 기술이지 OOP를 대체하는 새로운 개념이 아니다.
 
+### 6.5.5 AOP 적용기술
+스프링은 스프링의 다양한 기술을 조합해 AOP를 지원하고 있으나, 핵심 기능은 프록시다
+
+**바이트코드 생성과 조작을 통한 AOP**
+AspectJ는 프록시를 통하지않고 JVM이 java 코드를 클래스 파일로 바꿀때 직접 타깃 코드를 수정해서 부가기능을 삽입한다.
+이런 방법을 사용하는 이유는 두가지가 있는데,
+1. 첫째는 스프링과 같은 DI 컨테이너를 사용하지않는 환경에서도 AOP 적용이 가능하며
+2. 프록시가 AOP 대상을 클라이언트가 호출하는 메소드에 한정할 수 밖에 없는것 반면에, AspectJ는 바이트 코드를 직접 수정하기 때문에 다양한  순간에 부가기능 적용이 가능하다.
+
+다만 일반적인 AOP 적용이라면 프록시방식을 이용하면 충분하다. 프록시 AOP 수준을 넘어서는 데에만 그때 AspectJ를 사용하면된다.
+
+### 6.5.6 AOP의 용어
+- **타깃** : 부가기능 부여할 대상
+- **어드바이스** : 타깃에 제공할 부가기능을 담은 모듈
+- **조인 포인트** : 어드바이스가 적용될 수 있는 위치
+- **포인트컷** : 어드바이스를 적용할 조인 포인트를 선별하는 작업 또는 기능을 정의한 모듈 (포인트컷 정규표현식)
+- **프록시** : 클라이언트와 타깃 사이에서 부가기능을 제공하는 오브젝트. 타깃에 위임하면서 부가기능 수행.
+- **어드바이저** : 포인트컷 + 어드바이스인 오브젝트
+- **애스펙트** : 한 개 또는 그 이상의 포인트컷과 어드바이스의 조합 (오브젝트) // 어드바이저는 아주 단순한 애스펙트
+
+### 6.5.7 AOP 네임스페이스
+
+스프링 프록시 방식 AOP를 적용하려면 최소한 네 가지 빈을 등록해야한다.
+- 자동 프록시 생성기 : DefaultAdvisorAutoProxtCreator. 프록시 자동생성 기능
+- 어드바이스 : 부가기능 구현한 클래스를 빈으로 등록
+- 포인트컷 : AsepectJExpressionPointcut. expression에 포인트컷 표현식 넣음
+- 어드바이저 : DefaultPointcutAdvisor. 어드바이스와 포인트컷 등록
+
+**AOP 네임스페이스**
+
+**어드바이저 내장 포인트컷**
+
+## 6.6 트랜잭션 속성
+PlatforTransactionManager을 설명할때 사용했던 DefaultTransactionDefinition 오브젝트의 용도를 알아보자
+``` java
+public Object invoke(MethodInvocation invocation) throws Throwable {
+        TransactionStatus status = 
+            this.transactionManager.getTransaction(new DefaultTransactionDefinition()); //트랜잭션 시작???
+
+        try {
+            Object ret = invocation.proceed();
+            this.transactionManager.commit(status); // 트랜잭션 종료
+            return ret;
+        } catch (RuntimeException e) {
+            this.transactionManager.rollback(status); // 트랜잭션 종료
+            throw e;
+        }
+    }
+```
+
+
+
+### 6.6.1 트랜잭션 정의
+트랜잭션의 기본개념인 더 이상 쪼갤 수 없는 최소단위의 개념은 유효하나, 
+트랜잭션 동작방식을 제어할 수 있는 방법이 commit(), rollback() 외에도 존재한다.
+
+DefaultTransactionDefinition이 구현하고 있는 TransactionDefinition 인터페이스는 트랜잭션 동작방식에 영향을 줄 수 있는 네 가지 속성을 정의하고 있다.
+
+**트랜잭션 전파**
+
+![](../../../../../../../../../var/folders/50/7ndqz7bx4dv6bnkwf1pydg780000gn/T/TemporaryItems/NSIRD_screencaptureui_gK6Eh3/스크린샷 2023-11-08 17.36.24.png)
+A에서 트랜잭션이 시작되면 B는 A의 트랜잭션을 물려받아야할까 아니면 새로운 트랜잭션을 생성해야할까?
+이것을 트랜잭션 전파 속성이라고 하고 해당 속성을 설정할 수 있다.
+
+- PROPAGATION_REQUIRED
+  - 가장 많이 사용되는 트랜잭션 전파 속성
+  - 진행 중인 트랜잭션이 없으면 새로 시작하고 있으면 참여한다.
+  - DefaultTransactionDefinition 전파 속성
+- PROPAGATION_REQUIRES_NEW
+  - 항상 새로운 트랜잭션을 시작
+- PROPAGATION_REQUIRES_SUPPORTED
+  - 트랜잭션 무시
+- 그 외
+
+
+getTransaction()메소드를 사용하는 이유는 트랜잭션 전파속성이 있기 때문이다. 항상 새로 시작하는게 아니라, 있으면 가져오기 때문
+
+**격리수준(isolation level)**
+
+모든 DB는 격리수준을 갖고있어야한다. 서버에서는 성능이슈로인해 트랜잭션이 여러게 동시에 진행될 수 있기때문에 문제가 발생하지 않게 제어가 필요하다.
+격리수준은 기본적으로 DB에서 설정하지만 JDBC나 DataSource등에서 재설정할 수 있고, 트랜잭션 단위로도 조정할 수 있다.
+DefaultTransactionDefinition의 격리수준은 ISOLATION_DEFAULT이다. 이는 DataSource에 설정되어 있는 디폴트 격리수준을 그대로 따른다는 뜻이다.
+
+**제한시간**
+
+트랜잭션을 직접 시작할 수 있는 PROPAGATION_REQUIRED, PROPAGATION_REQUIRES_NEW일때만 함께 사용해야 의미가 있다.
+
+**읽기전용**
+
+데이터 조작하는 시도를 막아준다.
+
+위의 네 가지 속성을 이용해서 트랜잭션의 동작방식을 제어할 수 있다.
+TransactionDefinition를 구현한 오브젝트를 빈으로 등록해 DI 받아서 사용한다. 그런데 그렇게하면 전체 트랜잭션 설정이 전부 변경된다.
+원하는 곳만 원하는 메서드만 선택해서 트랜잭션 정의를 적용하고싶다.
+
+
 
 
 
