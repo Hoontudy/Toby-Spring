@@ -1763,8 +1763,246 @@ TransactionDefinition를 구현한 오브젝트를 빈으로 등록해 DI 받아
 원하는 곳만 원하는 메서드만 선택해서 트랜잭션 정의를 적용하고싶다.
 
 
+### 6.6.2 트랜잭션 인터셉터와 트랜잭션 속성
+어드바이스의 기능을 확장해서 메소드 이름 패턴에 따라 다른 트랜잭션 정의가 적용되도록 만들자
+
+**TransactionInterceptor**
+
+스프링에서는 트랜잭션 경계설정 어드바이스로 사용할 수 있도록 만들어진 TransactionInterceptor가 있다.
+TransactionInterceptor 어드바이스는 기존 우리가 만들었던 TransactionAdvice에서 메소드 이름 패턴에 따라 트랜잭션 정의를 
+따로 지정해 줄 수 있다는 점만 추가되었다. \
+TransactionInterceptor는 PlatformTransactionManager와 Properties 타입의 두가지 프로퍼티를 가지고 있다.\
+Properties 타입인 두 번째 프로퍼티 이름은 transactionAttibutes로 트랜잭션 속성을 정의한 프로퍼티다.
+트랜잭션 속성은 TransactionDefinition의 네 가지 기본 항목에 rollback()이라는 메소드를 하나 더 갖고있는 TransactionAttribute로 정의된다.
+
+```java
+ public Object invoke(MethodInvocation invocation) throws Throwable {
+        TransactionStatus status 
+            = this.transactionManager.getTransaction(new DefaultTransactionDefinition()); // 트랜잭션 정의 4가지 속성
+
+        try {
+            Object ret = invocation.proceed();
+            this.transactionManager.commit(status);
+            
+            return ret;
+        } catch (RuntimeException e) { // 롤백 대상 예외종류 
+            this.transactionManager.rollback(status);
+            throw e;
+        }
+}
+
+```
+
+TransactionInterceptor에는 기본적으로 두 가지 종류의 예외처리 방식이 있다.
+1. 런타임 예외가 발생하면 트랜잭션은 롤백된다.
+2. 체크 예외가 발생하면 비지니스 로직에 따른 의미있는 롤백으로 인지하고 커밋된다.
+
+그런데 그 외의 케이스가 발생할 수도 있기때문에 TransactionAttribute에서는 rollbackOn()이라는 속성을 둬서
+상기의 원칙과 다른 예외처리가 가능하게 해준다.
+
+TransactionInterceptor는 이런 TransactionAttribute를 Properties라는 일종의 맵 타입 오브젝트를 전달받는다.
+
+**메소드 이름 패턴을 이용한 트랜잭션 속성 지정**
+
+transactionAttributes 프로퍼티는 메소드 패턴을 키로, 트랜잭션 속성을 값으로 갖는 컬렉션이다.
+트랜잭션 속상은 다음과 같은 문자열로 정의한다.
+- PROPAGATION_NAME: 트랜잭션 전파 방식 (필수)
+- ISOLATION_NAME: 격리수준 (생략가능)
+- readOnly: 읽기전용 (생략가능)
+- timeout_NNNN: 제한시간 (생략가능)
+- -Exception1: 체크예외중에서 롤백 대상으로 추가할 것을 넣음
+- +Exception2: 런타임 예외지만 롤백시키지 않을 예외들을 넣음
+
+이중에서 생략가능한 것들은 DefaultTransactionDefinition의 디폴트 속성이 부여된다.
+속성 설정은 한줄의 문자열로 설정이 되는데, 이렇게 설정한 이유는 중첩된 태그와 프로퍼티로 설정하기 번거롭기 때문이다.
+설정 예는 하기와 같다.
+```xml
+<bean id="transactionAdvice" class="org.springframwork.transaction.interceptor.TransactionInterceptor">
+    <property name="transactionManager" ref="transactionManager" />
+    <property name="transactionAttributes">
+        <props>
+            <prop key="get*">PROPAGATION_REQUIRED,readOnly,timeout_30</prop>
+            <prop key="update*">PROPAGATION_REQUIRED_NEW,ISOLATION_SERIALIZABLE</prop>
+            <prop key="*">PROPAGATION_REQUIRED</prop>
+        </props>
+    </property>
+    
+</bean>
+```
+
+만약 읽기전용이 아닌 트랜잭션 속성을 가진 메소드에서 get으로 시작되는 메소드를 호출하면,
+작업이 충돌될 것이라고 생각하겠지만 그렇지않다. readOnly나 timeout등은 트랜잭션이 처음 시작될 때가 아니라면 적용되지 않는다.
+
+메소드 이름이 하나 이상의 패턴과 일치하는 경우에는, 그 중 가장 정확히 일치하는 것에 적용된다.
+이렇게 메소드 이름 패턴을 사용하는 트랜잭션 속성을 활용하면, 하나의 트랜잭션 어드바이스를 정의하는 것만으로도 다양한 트랜잭션 설정이 가능해진다.
+
+**tx 네임스페이스를 이용한 설정 방법**
+
+<bean> 태그로 등록하는 경우에 비해 장점이 많아 tx 스키마 태그를 사용해 등록하도록 권장.. 하나 xml로 등록해야하나요? ㅎㅅㅎ
+
+### 6.6.3 포인트컷과 트랜잭션 속성의 적용 전략
+
+트랜잭션 부가기능 적용 메소드는 포인트컷에 의해, 트랜잭션 방식은 어드바이스의 트랜잭션 전파 속성에 따라 결정된다. 기본 설정은 바뀌지 않고 expression 표현식과 
+<tx:attributes>의 트랜잭션 속성만 결정하면 된다.\
+포인트컷 표현식과 트랜잭션 속성을 정의할 때 따르면 좋은 몇 가지 전략을 생각해보자
+
+**트랜잭션 포인트컷 표현식은 타입 패턴이나 빈 이름을 이용한다**
+
+트랜잭션을 적용할 타깃이 되는 메서드가 든 클래스는 모두 트랜잭션 적용 후보가 되는 것이 바람직하다. 일반적으로 비지니스 로직을 담고있는 클래스라면 메소드 단위까지 세밀하게 
+포인트컷을 정의해줄 필요는 없다.\
+UserService의 add()메소드도 트랜잭션 적용대상이 되어야한다. add() 메소드가 다른 트랜잭션에 참여할 가능성이 높기 때문이다.\
+쓰기작업이 없는 단순한 조회작업에도 읽기전용 트랜잭션 속성을 설정하는 것이 좋다.\
+따라서 트랜잭션용 포인트컷 표현식에는 메소드나 파라미터, 예외에 대한 패턴을 정의하지 않는게 바람직하다. 보통 해당 클래스들이 모여있는 패키지를 통째로 선택하거나,
+비지니스 로직 담당 클래스 이름은 Service, ServiceImpl로 끝나는 경우가 많아서 `execution(**..*ServiceImpl.*(..))`과 같이 포인트컷을 정의한다.\
+가능하면 클래스보다는 변경 빈도가 적은 인터페이스 타입을 기준으로 타입 패턴을 적용하는 것이 좋다.\
+혹은 스프링의 bean() 표현식을 사용해도 좋다. bean id가 Service로 끝나는 모든 빈에 대해 적용하고 싶다면 포인트컷 표현식을 bean(*Service)라고하면 된다.
+
+**공통된 메소드 이름 규칙을 통해 최소한의 트랜잭션 어드바이스와 속성을 정의한다.**
+
+너무 다양한 트랜잭션 속성을 사용하면, 관리만 힘들다. 따라서 몇가지의 트랜잭션 속성만 정이하고, 그에 따른 메소드명명규칙을 만들어두면,
+하나의 어드바이스만으로도 모든 서비스 빈에 트랜잭션 속성을 지정할 수 있다.
+
+하기와 같이 모든 메서드의 디폴트 속성을 지정한 후, 개발이 진행함에 따라 단계적으로 속성을 추가한다. 
+```xml
+<tx:advice id="transactionAdvice">
+    <tx:attributes>
+        <tx:method name="*"/>
+    </tx:attributes>
+</tx:advice>
+```
+
+개발을 진행하다가 get~ 으로 시작하는 읽기전용 메서드에 읽기전용 트랜잭션을 추가할 경우 하기와 같이 xml 코드를 수정하면 된다.
+혹시 get~ 메서드에 데이터 조작이 일어나면 에러가 발생하게 된다.
+
+```xml
+<tx:advice id="transactionAdvice">
+    <tx:attributes>
+        <tx:method name="get*" read-only="true" />
+        <tx:method name="*"/>
+    </tx:attributes>
+</tx:advice>
+```
+
+트랜잭션 적용대상 클래스의 메소드는 일정한 명명 규칙을 따르게 해야하며, 일반화하기 어려운 경우 별도의 어드바이스와 포인트컷 표현식을 사용하는 것이 좋다.
+```xml
+<aop:config>
+    <aop:advisor advice-ref="transactionAdvice" pointcut="bean(" />
+</aop:config>
+<tx:advice id="transactionAdvice">
+    <tx:attributes>
+        <tx:method name="get*" read-only="true" />
+        <tx:method name="*"/>
+    </tx:attributes>
+</tx:advice>
+```
 
 
 
+**프록시 방식 AOP는 같은 타깃 오브젝트 내의 메소드를 호출할 때는 적용되지 않는다.**
+
+프록시 방식의 AOP에서는 클라이언트가 호출했을 때만 부가기능이 적용되고 클래스 내부의 메소드를 호출할 때는 적용되지 않는다.
+![](../../../../../../../../../var/folders/50/7ndqz7bx4dv6bnkwf1pydg780000gn/T/TemporaryItems/NSIRD_screencaptureui_QQ1gjM/스크린샷 2023-11-13 10.31.34.png)
+
+타깃 오브젝트의 다른 메소드를 호출하는 경우에는 프록시를 거치지 않고 직접 타깃 메소드가 호출된다.
+그림에서 예시를 든다면 [1]에 적용된 트랜잭션 속성은 실행이 되지만 [2]의 경우 update()에 적용된 트랜잭션은 실행되지 않는다.\
+다시한번, 타깃 오브젝트 안에서 메소드 호출이 일어나는 경우에는 부가기능이 적용되지 않는다. 해결할 수 있는 방법은 두가지가 있다.\
+1. 스프링 API를 이용해 프록시 오브젝트에 대한 레퍼런스를 가져온뒤에, 같은 오브젝트 메소드 호출도 프록시를 이용하도록 강제하는 방법. (복잡 비추천)
+2. AspectJ와 같이 타깃의 바이트코드를 직접 조작하는 방식은 AOP 기술을 적용 (14장에서 설명)
 
 
+### 6.6.4 트랜잭션 속성 적용
+트랜잭션 속성과 전략을 UserService에 적용한다.
+
+**트랜잭션 경계설정의 일원화**
+비지니스 로직을 담고 있는 서비스계층 오브젝트의 메소드에 트랜잭션 경계를 부여하는 것으로 통일한다.
+트랜잭션 경계를 서비스 계층으로 두었으니, 꼭 DAO는 서비스계층을 통해서만 접근하도록 하고 다른 메소드나 클래스에서 DAO로 바로 접근하는 것을 차단한다.\
+(UserDao는 UserService에서만 접근한다.)
+비지니스로직이 있다면 서비스계층을 두는 것이 맞고, 단순 입출력과 검색수준의 조회가 전부라면 서비스계층을 없애고 DAO를 트랜잭션 경계로 만드는 방법도 있다.\
+
+기존 UserDao에서 트랜잭션이 적용될 메소드를 UserService에 추가한다.
+```java
+    public interface UserService {
+        void add(User user); 
+        User get(String id); //추가
+        List<User> getAll(); //추가
+        void deleteAll(); //추가
+        void update(User user); //추가
+}
+```
+다음은 UserServiceImpl에서 UserDao를 호출하도록 변경한다.
+
+```java
+    public class UserServiceImpl implements UsreService {
+        UserDao userDao;
+        
+        public void deleteAll() { userDao.deleteAll(); }
+        public User get(String id) { return userDao.get(id); }
+        public List<User> getAll() { return userDao.getAll(); }
+        public void update(User user) { userDao.update(user); }
+}
+```
+이렇게 모든 User관련 데이터 조작은 UserService라는 트랜잭션 경계를 통해 진행한다.
+
+**서비스 빈에 적용되는 포인트컷 표현식 등록**
+모든 비지니스 로직의 서비스 빈에 트랜잭션이 적용되도록 포인트컷 표현식을 변경한다.
+```xml
+    <aop:config>
+        <aop:advisor advice-ref="transactionAdvice" poincut="bean(*Service)"/>    
+    </aop:config>
+```
+
+**트랜잭션 속성을 가진 트랜잭션 어드바이스 등록**
+어드바이스 빈을 스프링의 TransactionAdvice 클래스로 정의했던 어드바이스 빈을 TransactionInterceptor를 사용하도록 변경한다.
+
+```xml
+<bean id="transactionAdvice" class="org.springframwork.transaction.interceptor.TransactionInterceptor">
+    <property name="transactionManager" ref="transactionManager" />
+    <property name="transactionAttributes">
+        <props>
+            <prop key="get*">PROPAGATION_REQUIRED,readOnly</prop>
+            <prop key="*">PROPAGATION_REQUIRED</prop>
+        </props>
+    </property>
+    
+</bean>
+```
+~ 스키마 태그 ~ 
+
+**트랜잭션 속성 테스트**
+이제 학습 테스트를 만들어보자.
+우리가 적용한 트랜잭션 속성에는 get* 메소드는 읽기전용이 적용되어있다. 쓰기작업을 진행하면 트랜잭션 적용이 안될까? 학습테스트를 통해 확인한다.\
+예외적인 상황을 억지로 만들어야 하기 때문에 이전에 롤백 테스트를 위해 만든 TestUserService를 활용한다.\
+새로추가한 getAll() 메소드를 오버라이드해서 강제로 DB에 쓰기 작업을 추가한다. 그러면 예외가 발생할까? 어떤 예외가 발생할까? 코드를 한번 돌려보고 어떤 예외가 발생했는지 확인한다.
+
+```java
+public class TestUserService extends UserServiceImpl{
+
+    @Override
+    public List<User> getAll() {
+        for (User user : super.getAll()) {
+            super.update(user); // 강제로 쓰기를 시도
+        }
+        
+        return null;
+    }
+}
+```
+위와같이 TestUserService를 수정하고 getAll을 호출하는 Test 또한 작성한다.
+
+```java
+    @Test
+    public void readOnlyTransactionAttribute() {
+        testUserService.getAll();    // 예외발생?
+    }   
+```
+테스트를 돌리면 `TransientDataAccessResourceException` 이라는 예외가 발생하는데, 해당 예외는 일시적인 제약조건 즉, 읽기전용 트랜잭션이 걸려있어서 실패했다 라는 의미를 내포한 예외이다.
+이제 테스트가 예외가 발생할 것을 반영하여 재수정후 테스트하면 테스트 통과한다.
+
+
+
+```java
+    @Test(expected=TransientDataAccessResourceException.class)
+    public void readOnlyTransactionAttribute() {
+        testUserService.getAll();  
+    }   
+```
