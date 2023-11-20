@@ -2006,3 +2006,137 @@ public class TestUserService extends UserServiceImpl{
         testUserService.getAll();  
     }   
 ```
+
+## 6.7 애노테이션 트랜잭션 속성과 포인트컷
+
+메소드마다 세밀한 트랜잭션 방식을 적용해야한다면, 앞서 포인트컷과 어드바이스를 설정추가하는 방식은 옳지않다. 일괄적으로 속성을 적용하는 대신, 타깃에 애노테이션을 직접 지정하는 방식이다.
+
+### 6.7.1 트랜잭션 애노테이션
+
+**@Transactional**
+
+트랜잭션 애노테이션 코드는 단순하고 직관적이어서 쉽게 이해할 수 있다.
+```java
+
+@Target({ElementType.TYPE, ElementType.METHOD})
+@Retention(RetentionPolicy.RUNTIME)
+@Inherited
+@Documented
+@Reflective
+public @interface Transactional {
+    @AliasFor("transactionManager")
+    String value() default "";
+
+    @AliasFor("value")
+    String transactionManager() default "";
+
+    String[] label() default {};
+
+    Propagation propagation() default Propagation.REQUIRED;
+
+    Isolation isolation() default Isolation.DEFAULT;
+
+    int timeout() default -1;
+
+    String timeoutString() default "";
+
+    boolean readOnly() default false;
+
+    Class<? extends Throwable>[] rollbackFor() default {};
+
+    String[] rollbackForClassName() default {};
+
+    Class<? extends Throwable>[] noRollbackFor() default {};
+
+    String[] noRollbackForClassName() default {};
+}
+```
+
+@Transactional은 메소드, 클래스, 인터페이스에 사용할 수 있다. @Transactional이 붙으면 타깃 오브젝트로 인식한다. 
+이 때 사용되는 포인트컷은 TransactionAttributeSourcePointcut 이다. 이 포인트 컷은 스스로의 표현식은 없지만, @Tranasactional이 붙은 애를 찾아서
+포인트컷의 결과로 돌려준다. 즉 @Transactional은 속성정의 및 타깃 지정을 모두 할 수있다.
+
+**트랜잭션 속성을 이용하는 포인트컷**
+
+@Transactional을 사용하면 포인트컷은 @Transactional이 붙은 메소드를 타깃으로 지정하면되고, @Transactional에 함께 지정한 속성값을 AnnotationTransactionAttributeSource를 사용하여 가져올 수 있다.
+이렇게하면 타깃(메소드) 마다의 세밀한 트랜잭션 적용이 가능하지만, 메서드마다 추가해주니, 코드가 지저분해지거나 반복적인 코드를 생산할 가능성이 높다.
+
+**대체 정책**
+
+따라서 스프링은 @Transactional을 적용할 때 4단계를 거치는 정책을 사용하는데, 이는 다음과 같다.
+
+1. 가장먼저 타깃의 메소드에 @Transactional이 있는지 확인한다.
+2. 클래스 레벨에 @Transactional이 있는지 확인한다.
+3. ...
+
+```java
+
+[1]
+public interface Service {
+    [2]
+    void method1();
+    
+    [3]
+    void method2();
+}
+
+[4]
+public class ServiceImpl implements Service {
+    
+    [5]
+    public void method1() {
+    }
+    
+    [6]
+    public void method2() {
+    }
+}
+```
+위와같은 코드의 예시가 있다면, 스프링은 어디서부터 @Transactional의 존재를 확인할까?\
+[5], [6]이 첫번째 후보로, 여기서 @Transactional이 발견되면 바로 애노테이션의 속성을 가져다가 해당 메소드의 트랜잭션 속성으로 사용한다.\
+메소드에서 발견하지 못한다면 다음은 [4]이다. 클래스에서 발견된다면, 해당 클래스의 모든 메소드에 공통적으로 적용되는 속성이 된다.\
+타깃 클래스에서도 @Transactional을 발견하지 못하면, 인터페이스로 넘어간다. [2], [3]이 다음 세번째 후보이다.
+마지막으로 [1]의 위치에 애노테이션이 있는지 확인한다.
+
+@Transactional은 타입레벨(클래스, 인터페이스)에 먼저 선언하고 공통속성을 따르지 않는 메소드에 대해서만 @Transactional을 부여해주는 식으로 사용한다.
+인터페이스에 두는 방식보다는, 타깃 클래스에 두는 방식을 추천한다. 왜냐하면 AOP가 프록시 방식을 쓸 수도 있고, 다른 방식을 쓸 수도 있기때문이다.\
+구현 클래스가 바뀌어도 동일하게 적용되어야한다면 인터페이스에 두는 방식도 장점을 가지고있다. 
+
+**트랜잭션 애노테이션 사용을 위한 설정**
+
+`<tx:annotation-driven /> ` 
+
+### 6.7.2 트랜잭션 애노테이션 적용
+
+꼭 세밀한 트랜잭션 속성이 필요한것은 아닐 때도 @Transactional 애노테이션을 사용하면 좋다. 편리하고 코드를 이해하기에도 좋다. 하지만 무분별하게 사용되거나, 빼먹을 위험도 있기때문에
+실수하지 않도록 주의하고 @Transactional 적용에 대한 별도의 코드리뷰를 거칠 필요가 있다.\
+
+<tx:attribute> 태그를 사용하여 설정했던 트랜잭션 속성을 애노테이션 방법으로 바꿔보자.
+```xml
+    <tx:attributes>
+        <tx:method name="get*" read-only="true" />
+        <tx:method name="*"/>
+    </tx:attributes>
+```
+
+UserSericeImpl, TestUserService 두 클래스 모두에 트랜잭션이 적용될 수 있도록, UserService 인터페이스에 트랜잭션을 적용한다.\
+UserService에는 get으로 시작하지 않는 메서드가 더 많으므로 인터페이스 레벨에 디폴트 속성을 부여해주고, 읽기전용 속성을 get으로 시작하는 메서드에 지정한다.
+
+```java
+@Transactional
+public interface UserService {
+    void add(User user);
+    void deleteAll(); //추가
+    void update(User user); //추가
+    void upgradeLevels();
+
+    @Transactional(readOnly=true)
+    User get(String id); //추가
+
+    @Transactional(readOnly=true)
+    List<User> getAll(); //추가
+}
+```
+
+
+
