@@ -1,0 +1,23 @@
+name: Auto Merge PR
+
+on:
+  pull_request:
+    types:
+      - opened
+    branches:
+      - main
+      
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: github.actor == 'YHLEE9753' || github.actor == 'Leeyerimearth' || github.actor == 'goshkim'
+    steps:
+      - id: merge
+        name: merge
+        uses: pascalgn/automerge-action@v0.15.6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: feedback
+        if: steps.merge.outputs.mergeResult == "merged"
+        run: |
+          echo "# :rocket: The PR has been successfully merged by ${{ github.actor }}." >> $GITHUB_STEP_SUMMARY
