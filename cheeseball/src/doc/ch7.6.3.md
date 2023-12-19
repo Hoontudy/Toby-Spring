@@ -10,9 +10,9 @@
 ### 방법
 - TestApplicationContext -> AppConext
 - 테스트 정보를 분리하자
-```text
+```java
 @Configuration
-    public c l a s s TestAppContext {
+    public class TestAppContext {
     @Autowired UserDao u s e r D a o ;
     
     @Bean
@@ -31,7 +31,7 @@
 - testUserService 는 mailSender 빈에 의존하니 해당 빈 정의 메서드도 작성
 - testUserService 는 UserServiceImpl 을 상속하니 userDao 프로퍼티는 자동 와이어링 대상이다
 - 따라서 testUserService 를 그냥 TestUserService 로 받아도 된다
-```text
+```java
 @Bean
 public UserService testUserService() {
   return new TestUserService();
@@ -42,7 +42,7 @@ public UserService testUserService() {
 - 현재 테스트용 빈은 설정정보가 없는게 낫다.
 - 패키지가 분리되고 설정정보 노출이 되어도 상관없을때 활용하자
 - 테스트 코드에 넣은 DI 정보용 클래스도 수정해야 한다
-```text
+```java
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes=(TestAppContext.class,AppContext.class]) 
 public class UserDaoTest {
@@ -55,7 +55,7 @@ public class UserDaoTest {
 - 테스트용 설정정보는 애플리케이션 설정정보와 깔끔하게 분리되는것이 낫다
 - AppContext 가 메인 설정정보가 되고
 - SqlServiceContext 는 AppContext 에 포함되는 보조 설정정보로 @Import 를 활용하자
-```text
+```java
 @Configuration
 @EnableTransactionManagement
 @ComponentScan (basePackages="springbook.user") 
@@ -65,7 +65,7 @@ public class AppContext
 # 7.6.4 프로파일
 - 테스트용 mail 은 더미 빈이었다
 - 근데 운영에는 진짜 MailSender 타입 빈이 필요하다
-```
+```java
 @Bean
 public MailSender mailSender (){
     JavaMailSender Impl mailSender = new JavaMailSender Imp1 (); 
@@ -82,20 +82,20 @@ public MailSender mailSender (){
 - 빈 구성이 달라지는 내용을 프로파일로 정의해서 만들어두고
 - 실행 시점에 어떤 프로파일의 빈 설정을 사용할지 지정
 - 프로파일 적용시 하나의 설정 클래스만 가지고 환경에 따라 다른 빈설정 조합 가능
-```text
+```java
 @Configuration 
 @Profile("test")
-public c l a s s TestAppContext {
+public class TestAppContext {
 ```
 - TestAppContext 는 test 프로파일에 분류
 
-```text
+```java
 
 @Configuration
 @EnableTransactionManagement
 @ComponentScan (basePackages="springbook.user")
 @Import ((SqlServiceContext.class, TestAppContext.class, ProductionAppContext.class))
-public c l a s s AppContext {
+public class AppContext {
 ```
 - AppContext 에서 모든 설정 클래스를 import 하고 있다
 - 따라서 AppContext 만 가져다 사용하자
@@ -120,4 +120,5 @@ public class UserServiceTest {
 ## 중첩 클래스를 이용한 프로파일 적용
 - 1개의 파일로 구조를 보고 싶은 경우
 - 중첩 클래스로 적용할 수 있다
+
 ![img_3.png](img_3.png)
